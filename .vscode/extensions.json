@@ -1,0 +1,55 @@
+{
+    "recommendations": [
+        // PHP Development
+        "bmewburn.vscode-intelephense-client",
+        "xdebug.php-debug",
+        "DEVSENSE.phptools-vscode",
+        "MehediDracula.php-namespace-resolver",
+        "neilbrayfield.php-docblocker",
+        "rifi2k.format-html-in-php",
+        
+        // Docker Development
+        "ms-vscode-remote.remote-containers",
+        "ms-azuretools.vscode-docker",
+        
+        // WordPress Development
+        "wordpresstoolbox.wordpress-toolbox",
+        "johnbillion.vscode-wordpress-hooks",
+        
+        // Web Development Essentials
+        "bradlc.vscode-tailwindcss",
+        "formulahendry.auto-rename-tag",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        
+        // Git & Version Control
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        
+        // General Development
+        "ms-vscode.vscode-eslint",
+        "streetsidesoftware.code-spell-checker",
+        "EditorConfig.EditorConfig",
+        "DotJoshJohnson.xml",
+        "mikestead.dotenv",
+        
+        // Database
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-mysql",
+        
+        // Theme & UI
+        "PKief.material-icon-theme",
+        "zhuangtongfa.Material-theme",
+        
+        // Productivity
+        "alefragnani.Bookmarks",
+        "formulahendry.code-runner",
+        "christian-kohler.path-intellisense",
+        "wayou.vscode-todo-highlight"
+    ],
+    "unwantedRecommendations": [
+        "felixfbecker.php-intellisense",
+        "hakcorp.php-awesome-snippets"
+    ]
+}

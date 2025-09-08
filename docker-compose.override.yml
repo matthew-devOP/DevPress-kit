@@ -1,0 +1,204 @@
+version: '3.8'
+
+services:
+  # Apache Development Overrides
+  apache:
+    environment:
+      # Development debugging
+      - APACHE_LOG_LEVEL=debug
+      - APACHE_SERVER_NAME=localhost
+      - APACHE_DOCUMENT_ROOT=/usr/local/apache2/htdocs
+    volumes:
+      # Development-specific volume mounts
+      - ./logs/apache:/usr/local/apache2/logs
+      - ./config/apache/development.conf:/usr/local/apache2/conf/extra/development.conf
+      - ./src:/usr/local/apache2/htdocs:cached  # Cached for better performance on macOS
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        labels: "service=apache,environment=development"
+
+  # PHP-FPM Development Overrides
+  php-fpm:
+    environment:
+      # PHP debugging environment variables
+      - XDEBUG_MODE=develop,debug,coverage
+      - XDEBUG_START_WITH_REQUEST=yes
+      - XDEBUG_CLIENT_HOST=host.docker.internal
+      - XDEBUG_CLIENT_PORT=9003
+      - XDEBUG_IDEKEY=PHPSTORM
+      - XDEBUG_LOG=/var/log/xdebug.log
+      - XDEBUG_LOG_LEVEL=0
+      # PHP development settings
+      - PHP_IDE_CONFIG=serverName=localhost
+      - PHP_DISPLAY_ERRORS=On
+      - PHP_DISPLAY_STARTUP_ERRORS=On
+      - PHP_ERROR_REPORTING=E_ALL
+      - PHP_LOG_ERRORS=On
+      - PHP_MAX_EXECUTION_TIME=300
+      - PHP_MEMORY_LIMIT=512M
+      - PHP_POST_MAX_SIZE=100M
+      - PHP_UPLOAD_MAX_FILESIZE=100M
+      # Application debugging
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - WP_DEBUG=true
+      - WP_DEBUG_LOG=true
+      - WP_DEBUG_DISPLAY=false
+      - WP_DISABLE_FATAL_ERROR_HANDLER=true
+      - SCRIPT_DEBUG=true
+    volumes:
+      # Development volume mounts with optimized caching
+      - ./src:/var/www/html:cached
+      - ./logs/php:/var/log/php
+      - ./logs/xdebug:/var/log
+      - ./config/php/development.ini:/usr/local/etc/php/conf.d/development.ini
+      - ./config/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
+      # Composer cache for faster dependency installation
+      - composer_cache:/root/.composer/cache
+      - ~/.ssh:/root/.ssh:ro  # SSH keys for Git operations
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "10"
+        labels: "service=php-fpm,environment=development"
+
+  # MariaDB Development Overrides
+  mariadb:
+    environment:
+      # Development-optimized database settings
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-dev_root_password}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-webapp_dev}
+      - MYSQL_USER=${MYSQL_USER:-dev_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-dev_password}
+      # Performance tuning for development
+      - MYSQL_INNODB_BUFFER_POOL_SIZE=128M
+      - MYSQL_INNODB_LOG_FILE_SIZE=50M
+      - MYSQL_INNODB_FLUSH_LOG_AT_TRX_COMMIT=2
+      - MYSQL_SYNC_BINLOG=0
+      - MYSQL_INNODB_DOUBLEWRITE=0
+    volumes:
+      # Development database configuration
+      - ./config/mysql/development.cnf:/etc/mysql/conf.d/development.cnf
+      - ./logs/mysql:/var/log/mysql
+      - ./sql/dev-data:/docker-entrypoint-initdb.d/dev-data
+      - ./backups:/backups
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --general-log=1
+      --general-log-file=/var/log/mysql/general.log
+      --slow-query-log=1
+      --slow-query-log-file=/var/log/mysql/slow.log
+      --long-query-time=2
+      --log-queries-not-using-indexes=1
+      --innodb-buffer-pool-size=128M
+      --innodb-log-file-size=50M
+      --innodb-flush-log-at-trx-commit=2
+      --sync-binlog=0
+      --innodb-doublewrite=0
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        labels: "service=mariadb,environment=development"
+
+  # phpMyAdmin Development Overrides
+  phpmyadmin:
+    environment:
+      # Development-specific phpMyAdmin settings
+      - PMA_USER=root
+      - PMA_PASSWORD=${MYSQL_ROOT_PASSWORD:-dev_root_password}
+      - UPLOAD_LIMIT=100M
+      - MEMORY_LIMIT=512M
+      - MAX_EXECUTION_TIME=300
+      # Enhanced debugging
+      - PMA_QUERYHISTORYDB=true
+      - PMA_QUERYHISTORYMAX=100
+    volumes:
+      # Development configuration and logs
+      - ./config/phpmyadmin/development.inc.php:/etc/phpmyadmin/config.user.inc.php
+      - ./logs/phpmyadmin:/var/log/phpmyadmin
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=phpmyadmin,environment=development"
+
+  # MailHog Development Overrides
+  mailhog:
+    environment:
+      # Enhanced mail debugging
+      - MH_STORAGE=maildir
+      - MH_MAILDIR_PATH=/maildir
+      - MH_SMTP_BIND_ADDR=0.0.0.0:1025
+      - MH_API_BIND_ADDR=0.0.0.0:8025
+      - MH_UI_BIND_ADDR=0.0.0.0:8025
+      - MH_UI_WEB_PATH=
+      - MH_AUTH_FILE=
+    volumes:
+      # Development mail storage and logs
+      - ./logs/mailhog:/var/log/mailhog
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=mailhog,environment=development"
+
+  # Redis Cache Service (Development Addition)
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-dev_redis_pass}
+    volumes:
+      - redis_data:/data
+      - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - ./logs/redis:/var/log/redis
+    networks:
+      - app-network
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD:-dev_redis_pass}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=redis,environment=development"
+
+  # Node.js Development Tools (for asset compilation)
+  node:
+    image: node:18-alpine
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html:cached
+      - node_modules:/var/www/html/node_modules
+      - ~/.npm:/root/.npm
+    environment:
+      - NODE_ENV=development
+      - NPM_CONFIG_LOGLEVEL=warn
+    networks:
+      - app-network
+    profiles:
+      - tools
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=node,environment=development"
+
+# Additional volumes for development
+volumes:
+  redis_data:
+    driver: local
+  composer_cache:
+    driver: local
+  node_modules:
+    driver: local

@@ -1,0 +1,59 @@
+# DevPress-Kit - WordPress Development Environment
+# .gitignore pentru repository public
+
+# WordPress și fișiere aplicație
+src/
+!src/.gitkeep
+
+# Log-uri
+logs/
+!logs/.gitkeep
+
+# Backup-uri
+backups/
+!backups/.gitkeep
+
+# Date și volume Docker
+*.sql
+*.sql.gz
+
+# Configurări locale
+.env
+.env.local
+.env.production
+
+# Cache și temporary files
+.DS_Store
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Node modules și dependențe
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Composer vendor
+vendor/
+
+# SSH keys
+*.pem
+*.key
+!config/apache/ssl/.gitkeep
+
+# Docker volumes și cache
+.docker/
+docker-compose.override.local.yml
+
+# IDE și editor files
+*.sublime-*
+.phpintel/
+*.code-workspace
+
+# OS generated files
+Thumbs.db
+.Spotlight-V100
+.Trashes

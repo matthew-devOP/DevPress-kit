@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # Apache2 Web Server
+  apache:
+    image: httpd:2.4
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./src:/usr/local/apache2/htdocs/
+      - ./config/apache/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ./config/apache/vhosts:/usr/local/apache2/conf/extra/
+    depends_on:
+      - php-fpm
+    networks:
+      - app-network
+    environment:
+      - APACHE_RUN_USER=www-data
+      - APACHE_RUN_GROUP=www-data
+
+  # PHP-FPM with Custom Dockerfile
+  php-fpm:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./src:/var/www/html/
+      - ./config/php/php.ini:/usr/local/etc/php/php.ini
+      - ./config/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
+    depends_on:
+      - mariadb
+    networks:
+      - app-network
+    environment:
+      - PHP_FPM_USER=www-data
+      - PHP_FPM_GROUP=www-data
+      - DB_HOST=mariadb
+      - DB_NAME=${MYSQL_DATABASE:-webapp_db}
+      - DB_USER=${MYSQL_USER:-webapp_user}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-webapp_pass}
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+
+  # MariaDB Database
+  mariadb:
+    image: mariadb:10.11
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-webapp_db}
+      MYSQL_USER: ${MYSQL_USER:-webapp_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-webapp_pass}
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./config/mysql/my.cnf:/etc/mysql/conf.d/custom.cnf
+      - ./sql/init:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    command: --default-authentication-plugin=mysql_native_password
+
+  # phpMyAdmin Interface
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.2
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      PMA_ARBITRARY: 1
+      PMA_ABSOLUTE_URI: http://localhost:8080/
+    depends_on:
+      - mariadb
+    networks:
+      - app-network
+    volumes:
+      - ./config/phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php
+
+  # MailHog SMTP Server
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    restart: unless-stopped
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+    networks:
+      - app-network
+    environment:
+      - MH_STORAGE=maildir
+      - MH_MAILDIR_PATH=/maildir
+    volumes:
+      - mailhog_data:/maildir
+
+# Named volumes for data persistence
+volumes:
+  mariadb_data:
+    driver: local
+  mailhog_data:
+    driver: local
+
+# Dedicated network for all services
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
