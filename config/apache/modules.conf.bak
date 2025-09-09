@@ -1,0 +1,24 @@
+# Load required Apache modules for WordPress with PHP-FPM
+
+# Enable mod_rewrite for WordPress permalinks
+LoadModule rewrite_module modules/mod_rewrite.so
+
+# Enable proxy modules for PHP-FPM communication
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so
+
+# Enable headers module for security headers
+LoadModule headers_module modules/mod_headers.so
+
+# Enable directory module for directory configurations
+LoadModule dir_module modules/mod_dir.so
+
+# Enable mime module for file type handling
+LoadModule mime_module modules/mod_mime.so
+
+# Enable authentication and authorization modules
+LoadModule authz_core_module modules/mod_authz_core.so
+LoadModule authz_host_module modules/mod_authz_host.so
+
+# Enable logging modules
+LoadModule log_config_module modules/mod_log_config.so
